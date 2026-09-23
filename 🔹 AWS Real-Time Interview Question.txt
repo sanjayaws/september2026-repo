@@ -1,0 +1,229 @@
+🔹 AWS Real-Time Interview Questions & Sample Answers
+1. EC2 suddenly not reachable – what do you check?
+
+Answer:
+
+First, check if the instance state is running.
+
+Verify System Status Checks in EC2 → if failing, it’s AWS infra issue. If Instance Status Check fails, it’s OS-level.
+
+Check Security Group and NACL rules for inbound/outbound.
+
+Verify Route Table + IGW/NAT Gateway if it’s a public instance.
+
+If only SSH/RDP fails, check OS-level firewall (iptables, ufw, Windows Firewall).
+
+Finally, check application logs in CloudWatch if configured.
+
+2. How do you ensure zero downtime while updating EC2 AMIs in Auto Scaling Group?
+
+Answer:
+
+Create a new Launch Template/Launch Configuration with the updated AMI.
+
+Update the Auto Scaling Group to use the new version.
+
+Use Rolling Updates or Blue/Green strategy → bring new instances first, test them, then terminate old ones gradually.
+
+This ensures traffic is served continuously via ALB.
+
+3. S3 Accidental Deletion – how do you protect data?
+
+Answer:
+
+Enable Versioning → keeps old versions of deleted/overwritten objects.
+
+Enable MFA Delete → requires MFA to permanently delete.
+
+Use Lifecycle Policies for archiving data instead of deleting.
+
+For compliance → Enable Cross-Region Replication to DR region.
+
+4. VPC – Application in one VPC can’t connect to DB in another VPC, how do you fix?
+
+Answer:
+
+Options: VPC Peering, Transit Gateway, or PrivateLink depending on scale.
+
+Ensure Route Tables allow traffic to the other VPC CIDR.
+
+Security Groups must allow inbound traffic from the source VPC.
+
+NACLs should not block traffic.
+
+5. ALB shows 502 Bad Gateway – root causes?
+
+Answer:
+
+ALB is healthy but backend target is failing. Possible causes:
+
+Application not listening on correct port/protocol.
+
+Target group health check path is incorrect.
+
+Security group blocking traffic from ALB.
+
+Backend service crashed.
+
+Fix → Check health check status, update SG rules, verify backend app is running.
+
+🔹 Terraform Real-Time Questions & Answers
+1. If someone changes AWS resources outside Terraform (drift), how do you handle?
+
+Answer:
+
+Run terraform plan → It will show drift between state file and real infra.
+
+If the change is valid → Use terraform import to bring resource into state.
+
+If not → Run terraform apply → It reverts to desired config.
+
+Best practice → Enforce IAM restrictions so only Terraform can change infra.
+
+2. Managing multiple environments (dev, test, prod)?
+
+Answer:
+
+Use Workspaces (terraform workspace) OR
+
+Use separate state files with remote backends (S3 + DynamoDB locking).
+
+Parameterize variables with .tfvars or environment-specific files.
+
+Example: terraform apply -var-file=prod.tfvars.
+
+3. State file deleted – recovery steps?
+
+Answer:
+
+If using Remote Backend (S3 + DynamoDB) → recover from S3 versioning.
+
+If local backend → Check for backup .terraform.tfstate.backup.
+
+If no backup → Rebuild state with terraform import (manual).
+
+Best practice → Always store state in remote backend with versioning.
+
+4. Reusable Terraform modules?
+
+Answer:
+
+Create modules for common infra (VPC, EC2, ASG, S3).
+
+Store them in a Git repo or Terraform Registry.
+
+Example: Instead of writing VPC each time, call module like:
+
+module "vpc" {
+  source = "git::https://github.com/org/vpc-module.git"
+  cidr_block = "10.0.0.0/16"
+}
+
+🔹 Jenkins + GitHub Real-Time Questions & Answers
+1. Pipeline fails after code commit – troubleshooting?
+
+Answer:
+
+Check Jenkins console logs → identify error.
+
+Validate Jenkinsfile syntax → run jenkins-linter.
+
+Check if GitHub webhook triggered properly.
+
+Verify credentials/secrets used in pipeline.
+
+If infra code (Terraform) fails → run terraform plan locally.
+
+2. How do you handle secrets in Jenkins pipelines?
+
+Answer:
+
+Store secrets in Jenkins Credentials Manager.
+
+Reference them inside pipeline via withCredentials block.
+
+For higher security → integrate with AWS Secrets Manager or HashiCorp Vault.
+
+3. Blue-Green deployment using Jenkins + Terraform?
+
+Answer:
+
+Use Terraform to provision two environments (Blue = current, Green = new).
+
+Deploy new version to Green.
+
+Run smoke tests.
+
+Switch ALB target group from Blue → Green.
+
+Rollback easily if issues occur.
+
+🔹 End-to-End Real-Time Scenarios
+1. High availability web app across regions?
+
+Answer:
+
+Multi-region VPCs.
+
+Deploy EC2 + ALB + ASG in each region.
+
+Use Route53 latency-based routing.
+
+S3 with Cross-Region Replication.
+
+DB with Aurora Global Database or multi-region RDS.
+
+Terraform for infra automation + Jenkins for deployment.
+
+2. AWS cost suddenly spiked – what do you do?
+
+Answer:
+
+Use Cost Explorer → identify services causing spike.
+
+Check S3 (large uploads, no lifecycle), EC2 (unused instances), NAT Gateway traffic.
+
+Enable CloudWatch billing alerts.
+
+Optimize → Reserved Instances, Spot Instances, S3 lifecycle rules, right-sizing EC2.
+
+✅ These answers are structured, so you can explain step by step in the interview.
+
+👉 Do you want me to make a Q&A cheat sheet (short points only) for quick revision before your client interview?
+
+You said:
+yes
+ChatGPT said:
+
+Great 👍 I’ll make a Q&A cheat sheet for you — short, crisp, and easy to revise just before your client interview.
+
+🔹 AWS Cheat Sheet (Real-Time Q&A)
+
+EC2 not reachable → Check instance state → status checks → SG/NACL → route table → firewall → logs.
+Zero downtime AMI update → New Launch Template → Update ASG → Rolling/Blue-Green → ALB directs traffic.
+S3 protection → Enable Versioning → MFA Delete → Lifecycle policies → CRR.
+VPC connectivity issue → Use VPC Peering/Transit GW → Update route tables → SG + NACL rules.
+ALB 502 error → Wrong port/protocol → SG blocking → health check path wrong → backend app down.
+
+🔹 Terraform Cheat Sheet
+
+Drift handling → terraform plan → fix drift → import if valid → apply if not.
+Multi-environments → Workspaces OR separate state files → .tfvars for vars.
+State file deleted → Recover from S3 versioning / backup → else terraform import.
+Reusable modules → Create module → store in Git → call via module "name" { source="git::..." }.
+Sensitive data → Use terraform.tfvars + remote backend encryption.
+
+🔹 Jenkins + GitHub Cheat Sheet
+
+Pipeline fails after commit → Check console logs → Jenkinsfile syntax → webhook trigger → credentials.
+Secrets in Jenkins → Jenkins Credentials Manager → withCredentials → or AWS Secrets Manager/Vault.
+Blue-Green deployment → Deploy Green → test → switch ALB TG → rollback if needed.
+Parallel jobs → Use Jenkins pipeline stages with parallel.
+GitHub integration → Webhook triggers Jenkins → Pipeline pulls repo → Build + Deploy.
+
+🔹 End-to-End Scenarios Cheat Sheet
+
+High availability design → Multi-region → ALB + ASG → Route53 latency routing → S3 CRR → Aurora Global DB.
+Cost spike → Check Cost Explorer → EC2 idle → S3 storage → NAT traffic → Optimize with RI, Spot, Lifecycle rules.
+Disaster recovery → Cross-region S3 → Multi-AZ RDS → AMI + snapshot backups → Route53 failover.
+Blue-Green with Terraform+Jenkins → Two environments → deploy new → test → switch → rollback easily.
